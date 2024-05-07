@@ -1,4 +1,4 @@
-from src.main import Admin
+from pyopenttdadmin import Admin
 
 
 # Set the IP address and port number for connection

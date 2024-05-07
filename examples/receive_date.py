@@ -1,6 +1,4 @@
-from src.main import Admin
-from src.enums import AdminUpdateType, AdminUpdateFrequency
-from src.packet import DatePacket
+from pyopenttdadmin import Admin, AdminUpdateType, AdminUpdateFrequency, openttdpacket
 
 # Set the IP address and port number for connection
 ip_address = "127.0.0.1"
@@ -21,6 +19,6 @@ with Admin(ip=ip_address, port=port_number, name="pyOpenTTDAdmin", password="too
         # Receive packets from the server
         packets = admin.recv()
         for packet in packets:
-            if isinstance(packet, DatePacket):
+            if isinstance(packet, openttdpacket.DatePacket):
                 # Print date packet details
                 print(packet)
