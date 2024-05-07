@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = 'pyOpenTTDAdmin',
-    version = '0.1.2',
+    version = '0.1.3',
     packages = ['pyopenttdadmin'],
     install_requires = [],  # Add any dependencies here
     author = 'liki-mc',

@@ -18,9 +18,7 @@ Example code for an echo bot can be found here:
 ```python
 import os
 
-from src.main import Admin
-from src.packet import ChatPacket
-from src.enums import Actions, ChatDestTypes, AdminUpdateType
+from pyopenttdadmin import Admin, Actions, ChatDestTypes, AdminUpdateType, openttdpacket
 
 PASSWORD = os.getenv('OPENTTD_ADMIN_PASSWORD')
 if PASSWORD is None:
@@ -29,7 +27,7 @@ if PASSWORD is None:
 
 class App(Admin):
     def on_packet(self, packet):
-        if isinstance(packet, ChatPacket):
+        if isinstance(packet, openttdpacket.ChatPacket):
             print("ChatPacket")
             if packet.action == Actions.CHAT:
                 if packet.desttype == ChatDestTypes.BROADCAST:
