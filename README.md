@@ -33,7 +33,8 @@ class App(Admin):
                 if packet.desttype == ChatDestTypes.BROADCAST:
                     self.send_global(packet.message)
 
-with App(password = PASSWORD) as admin:
+with App() as admin:
+    admin.login("pyOpenTTDAdmin", PASSWORD)
     admin.send_subscribe(AdminUpdateType.CHAT)
     admin.run()
 ```
