@@ -17,5 +17,10 @@ admin.subscribe(AdminUpdateType.CHAT)
 def chat_packet(admin: Admin, packet: openttdpacket.ChatPacket):
     print(f'ID: {packet.id} Message: {packet.message}')
 
+# Echo chat
+@admin.add_handler(openttdpacket.ChatPacket)
+def echo_chat(admin: Admin, packet: openttdpacket.ChatPacket):
+    admin.send_global(packet.message)
+
 # Run admin
 admin.run()

@@ -1,93 +1,116 @@
-import socket
-import time
+from pyopenttdadmin.enums import *
+from pyopenttdadmin.packet import *
 
-from typing import Callable
+from typing import Callable, Coroutine, ClassVar
 
-from .enums import *
-from .packet import *
+import asyncio
 
 class Admin:
     """This class is used to interact with an OpenTTD server using the admin port.
 
     - ip (str): The IP address of the server.
     - port (int): The port of the server.
-    - name (str): The name of the admin.
-    - password (str): The password of the admin.
     """
     def __init__(self, ip: str = "127.0.0.1", port: int = 3977):
-        self.socket = socket.socket()
-        self.socket.connect((ip, port))
-        self.socket.settimeout(0.5) # used to periodically check for keyboard interrupts
+        self.ip = ip
+        self.port = port
         self._buffer = b""
-        self.handlers: dict[PacketType, list[Callable]] = {}
+        self._packets = []
 
-    def __enter__(self):
+        self._reader: asyncio.StreamReader | None = None
+        self._writer: asyncio.StreamWriter | None = None
+
+        self.handlers: dict[PacketType, list[Callable[[Admin, Packet], Coroutine]]] = {}
+    
+    async def __aenter__(self):
+        await self.connect()
         return self
     
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.socket.close()
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        if self._writer is not None:
+            if not self._writer.is_closing():
+                self._writer.close()
+            
+            await self._writer.wait_closed()
     
-    def login(self, name: str, password: str, version: int = 0):
+    async def connect(self):
+        self._reader, self._writer = await asyncio.open_connection(self.ip, self.port)
+    
+    async def login(self, name: str, password: str, version: int = 0):
         """Log in to the server.
 
         - name (str): The name of the admin.
         - password (str): The password of the admin.
         - version (int): The version of the admin. Default is 0.
         """
+        if self._writer is None:
+            await self.connect()
+        
         packet = AdminJoinPacket(password, name, str(version))
-        self._send(packet)
+        await self._send(packet)
     
-    def _send(self, packet: Packet):
+    async def _send(self, packet: Packet):
+        if self._writer is None:
+            raise ValueError("Not connected to server.")
+        
         data = packet.to_bytes()
         packet_type = packet.packet_type.value.to_bytes(1, 'little')
         length = (len(data) + 3).to_bytes(2, 'little')
 
-        self.socket.send(length + packet_type + data)
+        self._writer.write(length + packet_type + data)
+        await self._writer.drain()
     
-    def _recv(self, size: int):
-        """Help function to periodically check for keyboard interrupts.
-
-        Returns socket.recv(size)
-        """
-        try:
-            return self.socket.recv(size)
-        except socket.timeout:
-            return b""
-    
-    def recv(self) -> list[Packet]:
+    async def recv(self) -> list[Packet]:
         """Receive packets from the server.
         
         Returns:
         - list[Packet]: A list of packets received from the server.
         """
-        self._buffer += self._recv(1024)
-        packets = []
-        if len(self._buffer) < 2:
-            return packets
+        if self._reader is None:
+            raise ValueError("Not connected to server.")
+        
+        self._buffer += await self._reader.read(1024)
 
+        # buffer can be empty
+        if not self._buffer:
+            return []
+        
+        packets = self._packets
+        self._packets = []
+
+        fetched = 1
         while True:
             packet_len = int.from_bytes(self._buffer[0:2], 'little')
             if len(self._buffer) < packet_len:
-                return packets
+                if fetched > 5:
+                    # only keep fetching 5 times on incomplete data
+                    break
+
+                # more data is available
+                self._buffer += await self._reader.read(1024)
+                fetched += 1
+                continue
             
             packets.append(Packet.create_packet(self._buffer[2: packet_len]))
             self._buffer = self._buffer[packet_len:]
+
+            # no data available
             if not self._buffer:
                 return packets
         
-    def _rcon(self, command: str):
+    async def _rcon(self, command: str):
         packet = AdminRconPacket(command)
-        self._send(packet)
+        await self._send(packet)
     
-    def _chat(self, message: str, action: Actions = Actions.CHAT, desttype: ChatDestTypes = ChatDestTypes.BROADCAST, id: int = 0):
+    async def _chat(self, message: str, action: Actions = Actions.CHAT, desttype: ChatDestTypes = ChatDestTypes.BROADCAST, id: int = 0):
         packet = AdminChatPacket(message, action, desttype, id)
-        self._send(packet)
+        await self._send(packet)
     
-    def _subscribe(self, type: AdminUpdateType, frequency: AdminUpdateFrequency = AdminUpdateFrequency.AUTOMATIC):
+    async def _subscribe(self, type: AdminUpdateType, frequency: AdminUpdateFrequency = AdminUpdateFrequency.AUTOMATIC):
         packet = AdminSubscribePacket(type, frequency)
-        self._send(packet)
+        await self._send(packet)
     
-    def send_rcon(
+    async def send_rcon(
         self,
         command: str
     ) -> None:
@@ -95,9 +118,9 @@ class Admin:
         
         - command (str): The RCON command to send.
         """
-        self._rcon(command)
+        await self._rcon(command)
     
-    def send_global(
+    async def send_global(
         self,
         message: str
     ) -> None:
@@ -105,9 +128,9 @@ class Admin:
         
         - message (str): The message to send.
         """
-        self._chat(message)
+        await self._chat(message)
 
-    def send_company(
+    async def send_company(
         self,
         message: str,
         id: int
@@ -117,9 +140,9 @@ class Admin:
         - message (str): The message to send.
         - id (int): The company ID.
         """
-        self._chat(message, desttype=ChatDestTypes.TEAM, id=id)
+        await self._chat(message, desttype=ChatDestTypes.TEAM, id=id)
     
-    def send_private(
+    async def send_private(
         self,
         message: str,
         id: int
@@ -129,9 +152,9 @@ class Admin:
         - message (str): The message to send.
         - id (int): The client ID.
         """
-        self._chat(message, desttype=ChatDestTypes.CLIENT, id=id)
+        await self._chat(message, desttype=ChatDestTypes.CLIENT, id=id)
 
-    def subscribe(
+    async def subscribe(
         self,
         type: AdminUpdateType,
         frequency: AdminUpdateFrequency = AdminUpdateFrequency.AUTOMATIC
@@ -143,46 +166,55 @@ class Admin:
         """
         if frequency not in AdminUpdateTypeFrequencyMatrix[type]:
             raise ValueError(f"Invalid frequency ({frequency}) for {type}")
-        self._subscribe(type, frequency)
+        
+        await self._subscribe(type, frequency)
     
-    def run(self):
+    async def run(self):
         """This method will keep polling the server for packets, it calls on_packet for each packet received.
         
         If a shutdownpacket is recieved, the method will return.
         """
         while True:
-            packets = self.recv()
+            packets = await self.recv()
+
             for packet in packets:
-                self.on_packet(packet)
+                await self.on_packet(packet)
                 
                 if isinstance(packet, ShutdownPacket):
                     return
     
-    def handle_packet(self, packet: Packet):
+    async def handle_packet(self, packet: Packet):
         """Handle a packet received from the server.
 
         - packet (Packet): The packet to handle.
         """
+        tasks = set()
         for handler in self.handlers.get(type(packet), []):
-            handler(self, packet)
+            tasks.add(handler(self, packet))
+        
+        await asyncio.gather(*tasks)
     
-    def add_handler(self, *packet_types: type[Packet]):
+    def add_handler(self, *packets: type[Packet]):
         """Decorator to add a handler for a specific packet type.
 
         - packets (Packet): The packet classes to handle.
         """
-        def decorator(func: Callable[[Admin, Packet], None]):
-            for packet_type in packet_types:
+        def decorator(func: Callable[[Admin, Packet], Coroutine]):
+            if not asyncio.iscoroutinefunction(func):
+                raise ValueError("Handler must be a coroutine.")
+
+            for packet_type in packets:
                 if packet_type not in self.handlers:
                     self.handlers[packet_type] = []
                 self.handlers[packet_type].append(func)
+            
             return func
         
         return decorator
     
-    def on_packet(self, packet: Packet):
+    async def on_packet(self, packet: Packet):
         """Handle a packet received from the server.
         
         - packet (Packet): The packet to handle.
         """
-        self.handle_packet(packet)
+        await self.handle_packet(packet)

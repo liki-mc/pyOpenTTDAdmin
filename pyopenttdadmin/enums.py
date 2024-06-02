@@ -44,11 +44,42 @@ class PacketType(Enum):
     
     INVALID_ADMIN_PACKET = 0xFF   # An invalid marker for admin packets.
 
+class Actions(Enum):
+    JOIN = 0x00
+    LEAVE = 0x01
+    SERVER_MESSAGE = 0x02
+    CHAT = 0x03
+    CHAT_COMPANY = 0x04
+    CHAT_CLIENT = 0x05
+    GIVE_MONEY = 0x06
+    NAME_CHANGE = 0x07
+    COMPANY_SPECTATOR = 0x08
+    COMPANY_JOIN = 0x09
+    COMPANY_NEW = 0x0A
+
+class AdminCompanyRemoveReason(Enum):
+    """Reasons for removing a company - communicated to admins"""
+    ADMIN_CRR_MANUAL = 0x00    # The company is manually removed.
+    ADMIN_CRR_AUTOCLEAN = 0x01 # The company is removed due to autoclean.
+    ADMIN_CRR_BANKRUPT = 0x02  # The company went belly-up.
+    
+    ADMIN_CRR_END = 0x03       # Sentinel for end.
+
 class AdminStatus(Enum):
     """Status of an admin."""
     INACTIVE = 0x00 # The admin is not connected nor active.
     ACTIVE = 0x01   # The admin is active.
     END = 0x02      # Must ALWAYS be on the end of this list!! (period)
+
+class AdminUpdateFrequency(Enum):
+    """Update frequencies an admin can register."""
+    POLL = 0x01      # The admin can poll this.
+    DAILY = 0x02     # The admin gets information about this on a daily basis.
+    WEEKLY = 0x04    # The admin gets information about this on a weekly basis.
+    MONTHLY = 0x08   # The admin gets information about this on a monthly basis.
+    QUARTERLY = 0x10 # The admin gets information about this on a quarterly basis.
+    ANUALLY = 0x20   # The admin gets information about this on a yearly basis.
+    AUTOMATIC = 0x40 # The admin gets information about this when it changes.
 
 class AdminUpdateType(Enum):
     """Update types an admin can register a frequency for."""
@@ -64,41 +95,34 @@ class AdminUpdateType(Enum):
     GAMESCRIPT = 0x09      # The admin would like to have gamescript messages.
     END = 0x0A             # Must ALWAYS be on the end of this list!! (period)
 
-class AdminUpdateFrequency(Enum):
-    """Update frequencies an admin can register."""
-    POLL = 0x01      # The admin can poll this.
-    DAILY = 0x02     # The admin gets information about this on a daily basis.
-    WEEKLY = 0x04    # The admin gets information about this on a weekly basis.
-    MONTHLY = 0x08   # The admin gets information about this on a monthly basis.
-    QUARTERLY = 0x10 # The admin gets information about this on a quarterly basis.
-    ANUALLY = 0x20   # The admin gets information about this on a yearly basis.
-    AUTOMATIC = 0x40 # The admin gets information about this when it changes.
-
-class AdminCompanyRemoveReason(Enum):
-    """Reasons for removing a company - communicated to admins"""
-    ADMIN_CRR_MANUAL = 0x00    # The company is manually removed.
-    ADMIN_CRR_AUTOCLEAN = 0x01 # The company is removed due to autoclean.
-    ADMIN_CRR_BANKRUPT = 0x02  # The company went belly-up.
-    
-    ADMIN_CRR_END = 0x03       # Sentinel for end.
-
-class Actions(Enum):
-    JOIN = 0x00
-    LEAVE = 0x01
-    SERVER_MESSAGE = 0x02
-    CHAT = 0x03
-    CHAT_COMPANY = 0x04
-    CHAT_CLIENT = 0x05
-    GIVE_MONEY = 0x06
-    NAME_CHANGE = 0x07
-    COMPANY_SPECTATOR = 0x08
-    COMPANY_JOIN = 0x09
-    COMPANY_NEW = 0x0A
-
 class ChatDestTypes(Enum):
     BROADCAST = 0x00
     TEAM = 0x01
     CLIENT = 0x02
+
+class Color(Enum):
+    DARK_BLUE = 0x00
+    PALE_GREEN = 0x01
+    PINK = 0x02
+    YELLOW = 0x03
+    RED = 0x04
+    LIGHT_BLUE = 0x05
+    GREEN = 0x06
+    DARK_GREEN = 0x07
+    BLUE = 0x08
+    CREAM = 0x09
+    MAUVE = 0x0A
+    PURPLE = 0x0B
+    ORANGE = 0x0C
+    BROWN = 0x0D
+    GREY = 0x0E
+    WHITE = 0x0F
+
+class Landscape(Enum):
+    TEMPERATE = 0x00
+    SUB_ARCTIC = 0x01
+    SUB_TROPICAL = 0x02
+    TOYLAND = 0x03
 
 class NetWorkErrorCodes(Enum):
     NETWORK_ERROR_GENERAL = 0x00 # Try to use this one like never

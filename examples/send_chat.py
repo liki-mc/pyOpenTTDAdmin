@@ -7,12 +7,13 @@ port_number = 3977
 
 
 # Instantiate the Admin class and establish connection to the server
-with Admin(ip=ip_address, port=port_number, name="pyOpenTTDAdmin", password="toor") as admin:
+admin = Admin(ip = ip_address, port = port_number)
+admin.login(name = "pyOpenTTDAdmin", password = "toor")
 
-    # Send a global message to all players
-    admin.send_global(message="Hello! I am a Python-powered OpenTTD bot!")
+# Send a global message to all players
+admin.send_global(message="Hello! I am a Python-powered OpenTTD bot!")
 
-    # Send a private message to player with ID 1
-    admin.send_private(message="This is a private message sent to ID 1", id=1)
+# Send a private message to player with ID 1
+admin.send_private(message="This is a private message sent to ID 1", id=1)
 
 

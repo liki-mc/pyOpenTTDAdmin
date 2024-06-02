@@ -1,7 +1,9 @@
 # Custom
 .env
 test.py
+checks.py
 pypi.sh
+testpypi.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
