@@ -146,6 +146,10 @@ class NewGamePacket(Packet):
     def __repr__(self) -> str:
         return f"NewGamePacket()"
 
+    @staticmethod
+    def from_bytes(data: bytes) -> Self:
+        return NewGamePacket(data)
+
 class ShutdownPacket(Packet):
     packet_type = PacketType.SERVER_SHUTDOWN
     def __init__(self, data: bytes):
@@ -153,6 +157,10 @@ class ShutdownPacket(Packet):
     
     def __repr__(self) -> str:
         return f"ShutdownPacket()"
+
+    @staticmethod
+    def from_bytes(data: bytes) -> Self:
+        return ShutdownPacket(data)
 
 class DatePacket(Packet):
     packet_type = PacketType.SERVER_DATE
@@ -169,11 +177,16 @@ class DatePacket(Packet):
 
 class ClientJoinPacket(Packet):
     packet_type = PacketType.SERVER_CLIENT_JOIN
-    def __init__(self, data: bytes):
-        self.id = int.from_bytes(data[1:5], 'little')
+    def __init__(self, id: int):
+        self.id = id
     
     def __repr__(self) -> str:
         return f"ClientJoinPacket({self.id})"
+
+    @staticmethod
+    def from_bytes(data: bytes) -> Self:
+        id = int.from_bytes(data[1:5], 'little')
+        return ClientJoinPacket(id)
 
 class ClientInfoPacket(Packet):
     packet_type = PacketType.SERVER_CLIENT_INFO
