@@ -1,7 +1,7 @@
 from pyopenttdadmin.enums import *
 from pyopenttdadmin.packet import *
 
-from typing import Callable, Coroutine, ClassVar
+from typing import Callable, Coroutine
 
 import asyncio
 
@@ -80,11 +80,14 @@ class Admin:
 
         fetched = 1
         while True:
+            if len(self._buffer) < 2:
+                return packets
+            
             packet_len = int.from_bytes(self._buffer[0:2], 'little')
             if len(self._buffer) < packet_len:
                 if fetched > 5:
                     # only keep fetching 5 times on incomplete data
-                    break
+                    return packets
 
                 # more data is available
                 self._buffer += await self._reader.read(1024)
@@ -213,8 +216,8 @@ class Admin:
         return decorator
     
     async def on_packet(self, packet: Packet):
-        """Handle a packet received from the server.
+        """This method is called for each packet received from the server.
         
-        - packet (Packet): The packet to handle.
+        - packet (Packet): Packet received from the server.
         """
         await self.handle_packet(packet)

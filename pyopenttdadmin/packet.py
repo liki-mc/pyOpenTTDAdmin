@@ -434,7 +434,7 @@ class RconEndPacket(Packet):
    
 class RconPacket(Packet):
     packet_type = PacketType.SERVER_RCON
-    def __init__(self, color: Color, response: str):
+    def __init__(self, color: bytes, response: str):
         self.color = color
         self.response = response
     
@@ -443,7 +443,7 @@ class RconPacket(Packet):
     
     @staticmethod
     def from_bytes(data: bytes) -> Self:
-        color = Color(int.from_bytes(data[1:3], 'little'))
+        color = data[1:3] # Color(int.from_bytes(data[1:3], 'little')) - this uses colors up to 256
         response, *_ = data[3:].partition(b'\x00')
         return RconPacket(color, response.decode('utf-8'))
 

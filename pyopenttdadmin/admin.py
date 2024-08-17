@@ -117,7 +117,7 @@ class Admin:
         - message (str): The message to send.
         - id (int): The company ID.
         """
-        self._chat(message, desttype=ChatDestTypes.TEAM, id=id)
+        self._chat(message, action = Actions.CHAT_COMPANY, desttype = ChatDestTypes.TEAM, id = id)
     
     def send_private(
         self,
@@ -129,7 +129,7 @@ class Admin:
         - message (str): The message to send.
         - id (int): The client ID.
         """
-        self._chat(message, desttype=ChatDestTypes.CLIENT, id=id)
+        self._chat(message, action = Actions.CHAT_CLIENT, desttype = ChatDestTypes.CLIENT, id = id)
 
     def subscribe(
         self,
@@ -181,8 +181,8 @@ class Admin:
         return decorator
     
     def on_packet(self, packet: Packet):
-        """Handle a packet received from the server.
+        """This method is called for each packet received from the server.
         
-        - packet (Packet): The packet to handle.
+        - packet (Packet): Packet received from the server.
         """
         self.handle_packet(packet)
