@@ -1,6 +1,6 @@
 # Custom
 .env
-test.py
+test*.py
 checks.py
 pypi.sh
 testpypi.sh
