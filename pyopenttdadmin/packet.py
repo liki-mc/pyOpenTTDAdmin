@@ -552,7 +552,7 @@ class AdminChatPacket(Packet):
             self.desttype.value.to_bytes(1, 'little') + 
             self.id.to_bytes(4, 'little')
         )
-        return f"{buffer.decode('utf-8')}{self.message}\x00".encode('utf-8')
+        return buffer + f"{self.message}\x00".encode('utf-8')
     
     @staticmethod
     def from_bytes(data: bytes) -> Self:
