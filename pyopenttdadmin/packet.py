@@ -1,6 +1,6 @@
 from .enums import *
 
-from typing_extensions import Self
+from typing_extensions import Self, TypedDict
 
 # reference: https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h
 
@@ -347,35 +347,47 @@ class CompanyRemovePacket(Packet):
         admin_remove_reason = AdminCompanyRemoveReason(data[2])
         return CompanyRemovePacket(id, admin_remove_reason)
 
+class QuarterlyCompanyInfo(TypedDict):
+    company_value: int
+    company_performance_history: int
+    delivered_cargo: int
+
 class CompanyEconomyPacket(Packet):
     packet_type = PacketType.SERVER_COMPANY_ECONOMY
-    def __init__(self, id: int, money: int, current_loan: int, delivered_cargo: int, quarterly_info: list[tuple[int, int, int]]):
+    def __init__(self, id: int, money: int, current_loan: int, income: int, delivered_cargo: int, quarterly_info: list[QuarterlyCompanyInfo]):
         self.id = id
         self.money = money
         self.current_loan = current_loan
+        self.income = income
         self.delivered_cargo = delivered_cargo
         self.quarterly_info = quarterly_info
-    
+
     def __repr__(self) -> str:
-        return f"CompanyEconomyPacket({self.id}, {self.money}, {self.current_loan}, {self.delivered_cargo})"
+        return (f"CompanyEconomyPacket({self.id}, money={self.money}, loan={self.current_loan}, "
+                f"income={self.income}, delivered={self.delivered_cargo}, quarterly={self.quarterly_info})")
     
     @staticmethod
     def from_bytes(data: bytes) -> Self:
         id = data[1]
         money = int.from_bytes(data[2:10], 'little')
         current_loan = int.from_bytes(data[10:18], 'little')
-        delivered_cargo = int.from_bytes(data[18:20], 'little')
-        data = data[20:]
+        income = int.from_bytes(data[18:26], "little")
+        delivered_cargo = int.from_bytes(data[26:28], 'little')
+        data = data[28:]
         quarterly_info = []
         
         for i in range(2):
             company_value = int.from_bytes(data[:8], 'little')
             company_performance_history = int.from_bytes(data[8:10], 'little')
             delivered_cargo = int.from_bytes(data[10:12], 'little')
-            quarterly_info.append((company_value, company_performance_history, delivered_cargo))
+            quarterly_info.append({
+                'company_value': company_value,
+                'company_performance_history': company_performance_history,
+                'delivered_cargo': delivered_cargo
+            })
             data = data[12:]
         
-        return CompanyEconomyPacket(id, money, current_loan, delivered_cargo, quarterly_info)
+        return CompanyEconomyPacket(id, money, current_loan, income, delivered_cargo, quarterly_info)
 
 class CompanyStatsPacket(Packet):
     packet_type = PacketType.SERVER_COMPANY_STATS
