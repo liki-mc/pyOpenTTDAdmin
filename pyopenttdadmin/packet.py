@@ -316,7 +316,6 @@ class CompanyUpdatePacket(Packet):
 
     @staticmethod
     def from_bytes(data: bytes) -> Self:
-        print(data)
         id = data[1]
         name, _, data = data[2:].partition(b'\x00')
         manager_name, _, data = data.partition(b'\x00')
@@ -324,7 +323,6 @@ class CompanyUpdatePacket(Packet):
         name = name.decode('utf-8')
         manager_name = manager_name.decode('utf-8')
         
-        print(data)
         color = Color(data[0])
         passworded = bool(data[1])
         quarters_to_bankruptcy = data[2]
@@ -592,6 +590,61 @@ class AdminSubscribePacket(Packet):
         frequency = AdminUpdateFrequency(int.from_bytes(data[3:5], 'little'))
         return AdminSubscribePacket(type, frequency)
 
+class AdminJoinSecurePacket(Packet):
+    packet_type = PacketType.ADMIN_JOIN_SECURE
+    def __init__(self, name: str, version: str, method_mask: int):
+        self.admin_name = name
+        self.admin_version = version
+        self.method_mask = method_mask
+
+    def __repr__(self) -> str:
+        return f"AdminJoinSecurePacket()"
+    
+    def to_bytes(self) -> bytes:
+        return f"{self.admin_name}\x00{self.admin_version}\x00".encode('utf-8') + self.method_mask.to_bytes(2, 'little')
+
+class AdminAuthenticationResponsePacket(Packet):
+    packet_type = PacketType.ADMIN_AUTHENTICATION_RESPONSE
+    def __init__(self, public_key: bytes, mac: bytes, message: bytes):
+        self.public_key = public_key
+        self.mac = mac
+        self.message = message
+
+    def __repr__(self) -> str:
+        return f"AdminAuthenticationResponsePacket({self.public_key = }, {self.mac = }, {self.message = })"
+    
+    def to_bytes(self) -> bytes:
+        return self.public_key + self.mac + self.message
+
+class ServerAuthenticationRequestPacket(Packet):
+    packet_type = PacketType.SERVER_AUTHENTICATION_REQUEST
+    def __init__(self, authentication_type: NetworkAuthenticationMethod, server_public_key: bytes, server_nonce: bytes):
+        self.authentication_type = authentication_type
+        self.server_public_key = server_public_key
+        self.server_nonce = server_nonce
+
+    def __repr__(self) -> str:
+        return f"ServerAuthenticationRequestPacket(authentication_type = {self.authentication_type}, server_key = {self.server_public_key}, server_nonce = {self.server_nonce})"
+    
+    @staticmethod
+    def from_bytes(data: bytes) -> Self:
+        authentication_type = NetworkAuthenticationMethod(int.from_bytes(data[1:2], 'little'))
+        server_key = data[2:34]
+        server_nonce = data[34:]
+        
+        return ServerAuthenticationRequestPacket(authentication_type, server_key, server_nonce)
+
+class ServerEnableEncryptionPacket(Packet):
+    packet_type = PacketType.SERVER_ENABLE_ENCRYPTION
+    def __init__(self, encryption_nonce: bytes):
+        self.encryption_nonce = encryption_nonce
+
+    def __repr__(self) -> str:
+        return f"ServerEnableEncryptionPacket({self.encryption_nonce = })"
+    
+    @staticmethod
+    def from_bytes(data: bytes) -> Self:
+        return ServerEnableEncryptionPacket(data[1:])
 
 packet_dict: dict[PacketType, Packet] = {
     PacketType.SERVER_ERROR: ErrorPacket,
@@ -621,5 +674,9 @@ packet_dict: dict[PacketType, Packet] = {
     PacketType.SERVER_CMD_LOGGING: CmdLoggingPacket,
     PacketType.ADMIN_RCON: AdminRconPacket,
     PacketType.ADMIN_CHAT: AdminChatPacket,
-    PacketType.FREQUENCY: AdminSubscribePacket
+    PacketType.FREQUENCY: AdminSubscribePacket,
+    PacketType.ADMIN_JOIN_SECURE: AdminJoinSecurePacket,
+	PacketType.ADMIN_AUTHENTICATION_RESPONSE: AdminAuthenticationResponsePacket,
+	PacketType.SERVER_AUTHENTICATION_REQUEST: ServerAuthenticationRequestPacket,
+	PacketType.SERVER_ENABLE_ENCRYPTION: ServerEnableEncryptionPacket,
 }

@@ -1,46 +1,52 @@
 from enum import Enum
 
+
+# source: https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h
 class PacketType(Enum):
     """Packet types."""
-    ADMIN_JOIN = 0x00             # The admin announces and authenticates itself to the server.
-    ADMIN_QUIT = 0x01             # The admin tells the server that it is quitting.
-    FREQUENCY = 0x02              # The admin tells the server the update frequency of a particular piece of information.
-    ADMIN_POLL = 0x03             # The admin explicitly polls for a piece of information.
-    ADMIN_CHAT = 0x04             # The admin sends a chat message to be distributed.
-    ADMIN_RCON = 0x05             # The admin sends a remote console command.
-    ADMIN_GAMESCRIPT = 0x06       # The admin sends a JSON string for the GameScript.
-    ADMIN_PING = 0x07             # The admin sends a ping to the server, expecting a ping-reply (PONG) packet.
-    ADMIN_EXTERNAL_CHAT = 0x08    # The admin sends a chat message from external source.
+    ADMIN_JOIN = 0x00                      # The admin announces and authenticates itself to the server.
+    ADMIN_QUIT = 0x01                      # The admin tells the server that it is quitting.
+    FREQUENCY = 0x02                       # The admin tells the server the update frequency of a particular piece of information.
+    ADMIN_POLL = 0x03                      # The admin explicitly polls for a piece of information.
+    ADMIN_CHAT = 0x04                      # The admin sends a chat message to be distributed.
+    ADMIN_RCON = 0x05                      # The admin sends a remote console command.
+    ADMIN_GAMESCRIPT = 0x06                # The admin sends a JSON string for the GameScript.
+    ADMIN_PING = 0x07                      # The admin sends a ping to the server, expecting a ping-reply (PONG) packet.
+    ADMIN_EXTERNAL_CHAT = 0x08             # The admin sends a chat message from external source.
+    ADMIN_JOIN_SECURE = 0x09               # The admin announces and starts a secure authentication handshake.
+    ADMIN_AUTHENTICATION_RESPONSE = 0xA    # The admin responds to the authentication request.
 
-    SERVER_FULL = 0x64            # The server tells the admin it cannot accept the admin.
-    SERVER_BANNED = 0x65          # The server tells the admin it is banned.
-    SERVER_ERROR = 0x66           # The server tells the admin an error has occurred.
-    SERVER_PROTOCOL = 0x67        # The server tells the admin its protocol version.
-    SERVER_WELCOME = 0x68         # The server welcomes the admin to a game.
-    SERVER_NEWGAME = 0x69         # The server tells the admin its going to start a new game.
-    SERVER_SHUTDOWN = 0x6A        # The server tells the admin its shutting down.
+    SERVER_FULL = 0x64                     # The server tells the admin it cannot accept the admin.
+    SERVER_BANNED = 0x65                   # The server tells the admin it is banned.
+    SERVER_ERROR = 0x66                    # The server tells the admin an error has occurred.
+    SERVER_PROTOCOL = 0x67                 # The server tells the admin its protocol version.
+    SERVER_WELCOME = 0x68                  # The server welcomes the admin to a game.
+    SERVER_NEWGAME = 0x69                  # The server tells the admin its going to start a new game.
+    SERVER_SHUTDOWN = 0x6A                 # The server tells the admin its shutting down.
 
-    SERVER_DATE = 0x6B            # The server tells the admin what the current game date is.
-    SERVER_CLIENT_JOIN = 0x6C     # The server tells the admin that a client has joined.
-    SERVER_CLIENT_INFO = 0x6D     # The server gives the admin information about a client.
-    SERVER_CLIENT_UPDATE = 0x6E   # The server gives the admin an information update on a client.
-    SERVER_CLIENT_QUIT = 0x6F     # The server tells the admin that a client quit.
-    SERVER_CLIENT_ERROR = 0x70    # The server tells the admin that a client caused an error.
-    SERVER_COMPANY_NEW = 0x71     # The server tells the admin that a new company has started.
-    SERVER_COMPANY_INFO = 0x72    # The server gives the admin information about a company.
-    SERVER_COMPANY_UPDATE = 0x73  # The server gives the admin an information update on a company.
-    SERVER_COMPANY_REMOVE = 0x74  # The server
-    SERVER_COMPANY_ECONOMY = 0x75 # The server gives the admin some economy related company information.
-    SERVER_COMPANY_STATS = 0x76   # The server gives the admin some statistics about a company.
-    SERVER_CHAT = 0x77            # The server received a chat message and relays it.
-    SERVER_RCON = 0x78            # The server's reply to a remove console command.
-    SERVER_CONSOLE = 0x79         # The server gives the admin the data that got printed to its console.
-    SERVER_CMD_NAMES = 0x7A       # The server sends out the names of the DoCommands to the admins.
-    SERVER_CMD_LOGGING_OLD = 0x7B # Used to be the type ID of \c SERVER_CMD_LOGGING in \c NETWORK_GAME_ADMIN_VERSION 1.
-    SERVER_GAMESCRIPT = 0x7C      # The server gives the admin information from the GameScript in JSON.
-    SERVER_RCON_END = 0x7D        # The server indicates that the remote console command has completed.
-    SERVER_PONG = 0x7E            # The server replies to a ping request from the admin.
-    SERVER_CMD_LOGGING = 0x7F     # The server gives the admin copies of incoming command packets.
+    SERVER_DATE = 0x6B                     # The server tells the admin what the current game date is.
+    SERVER_CLIENT_JOIN = 0x6C              # The server tells the admin that a client has joined.
+    SERVER_CLIENT_INFO = 0x6D              # The server gives the admin information about a client.
+    SERVER_CLIENT_UPDATE = 0x6E            # The server gives the admin an information update on a client.
+    SERVER_CLIENT_QUIT = 0x6F              # The server tells the admin that a client quit.
+    SERVER_CLIENT_ERROR = 0x70             # The server tells the admin that a client caused an error.
+    SERVER_COMPANY_NEW = 0x71              # The server tells the admin that a new company has started.
+    SERVER_COMPANY_INFO = 0x72             # The server gives the admin information about a company.
+    SERVER_COMPANY_UPDATE = 0x73           # The server gives the admin an information update on a company.
+    SERVER_COMPANY_REMOVE = 0x74           # The server
+    SERVER_COMPANY_ECONOMY = 0x75          # The server gives the admin some economy related company information.
+    SERVER_COMPANY_STATS = 0x76            # The server gives the admin some statistics about a company.
+    SERVER_CHAT = 0x77                     # The server received a chat message and relays it.
+    SERVER_RCON = 0x78                     # The server's reply to a remove console command.
+    SERVER_CONSOLE = 0x79                  # The server gives the admin the data that got printed to its console.
+    SERVER_CMD_NAMES = 0x7A                # The server sends out the names of the DoCommands to the admins.
+    SERVER_CMD_LOGGING_OLD = 0x7B          # Used to be the type ID of \c SERVER_CMD_LOGGING in \c NETWORK_GAME_ADMIN_VERSION 1.
+    SERVER_GAMESCRIPT = 0x7C               # The server gives the admin information from the GameScript in JSON.
+    SERVER_RCON_END = 0x7D                 # The server indicates that the remote console command has completed.
+    SERVER_PONG = 0x7E                     # The server replies to a ping request from the admin.
+    SERVER_CMD_LOGGING = 0x7F              # The server gives the admin copies of incoming command packets.
+    SERVER_AUTHENTICATION_REQUEST = 0x80   # The server gives the admin the used authentication method and required parameters.
+    SERVER_ENABLE_ENCRYPTION = 0x81        # The server tells that authentication has completed and requests to enable encryption with the keys of the last \c PacketAdminType::AdminAuthenticationResponse.
     
     INVALID_ADMIN_PACKET = 0xFF   # An invalid marker for admin packets.
 
@@ -127,7 +133,7 @@ class Landscape(Enum):
 class NetWorkErrorCodes(Enum):
     NETWORK_ERROR_GENERAL = 0x00 # Try to use this one like never
 
-	# Signals from clients 
+    # Signals from clients 
     NETWORK_ERROR_DESYNC = 0x01
     NETWORK_ERROR_SAVEGAME_FAILED = 0x02
     NETWORK_ERROR_CONNECTION_LOST = 0x03
@@ -161,6 +167,13 @@ class NetworkVehicleType(Enum):
     NETWORK_VEH_SHIP = 4
 
     NETWORK_VEH_END = 5
+
+class NetworkAuthenticationMethod(Enum):
+    X25519_KeyExchangeOnly  = 0x0    # No actual authentication is taking place, just perform a x25519 key exchange. This method is not supported for the admin connection.
+    X25519_PAKE             = 0x1    # Authentication using x25519 password-authenticated key agreement.
+    X25519_AuthorizedKey    = 0x2    # Authentication using x22519 key exchange and authorised keys.
+    X25519_AuthorisedKey    = 0x2    # We all love British English way more and you better know it.
+    End                     = 0x3    # Must ALWAYS be on the end of this list!! (period)
 
 AdminUpdateTypeFrequencyMatrix: dict[AdminUpdateType, list[AdminUpdateFrequency]] = {
     AdminUpdateType.DATE : [AdminUpdateFrequency.POLL , AdminUpdateFrequency.DAILY , AdminUpdateFrequency.WEEKLY , AdminUpdateFrequency.MONTHLY , AdminUpdateFrequency.QUARTERLY , AdminUpdateFrequency.ANUALLY],
