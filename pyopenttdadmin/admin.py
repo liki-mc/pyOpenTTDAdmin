@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import socket
 
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Type
 
 if TYPE_CHECKING:
     from .pymonocypher import CryptoAeadCtx
@@ -16,7 +16,7 @@ try:
     randombytes = secrets.token_bytes
 except ImportError:
     import os
-    randombytes = os.urandom
+    randombytes = os.urandom # type: ignore
 
 class Admin:
     """This class is used to interact with an OpenTTD server using the admin port.
@@ -31,7 +31,7 @@ class Admin:
         self.socket.connect((ip, port))
         self.socket.settimeout(0.5) # used to periodically check for keyboard interrupts
         self._buffer = b""
-        self.handlers: dict[PacketType, list[Callable]] = {}
+        self.handlers: dict[Type[Packet], list[Callable]] = {}
         self.receive_crypto_handler: None | CryptoAeadCtx = None
         self.send_crypto_handler: None | CryptoAeadCtx = None
         self.auth: None | Auth = None
@@ -58,7 +58,10 @@ class Admin:
         - private_key (str): private key of the admin, can only be used with secure login
         - secure (bool): whether or not to make a secure connection
         """
+        packet: Packet
         if not secure:
+            if password is None:
+                raise ValueError("Please provide a password for insecure login")
             packet = AdminJoinPacket(password, name, str(version))
             self._send(packet)
         else:
@@ -138,7 +141,7 @@ class Admin:
         Returns:
         - list[Packet]: A list of packets received from the server.
         """
-        packets = []
+        packets: list[Packet] = []
         while len(packets) != num:
             self._buffer += self._recv(1024)
             packet_len = int.from_bytes(self._buffer[0:2], 'little')
@@ -168,7 +171,7 @@ class Admin:
         - list[Packet]: A list of packets received from the server.
         """
         self._buffer += self._recv(1024)
-        packets = []
+        packets: list[Packet] = []
         if len(self._buffer) < 2:
             return packets
 
@@ -277,7 +280,7 @@ class Admin:
         for handler in self.handlers.get(type(packet), []):
             handler(self, packet)
 
-    def add_handler(self, *packet_types: type[Packet]):
+    def add_handler(self, *packet_types: Type[Packet]):
         """Decorator to add a handler for a specific packet type.
 
         - packets (Packet): The packet classes to handle.

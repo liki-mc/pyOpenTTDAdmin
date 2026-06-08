@@ -28,12 +28,12 @@ def derive_keys(
 
 
 class Auth:
-    def __init__(self, secret_key: bytes, password: str = None):
+    def __init__(self, secret_key: bytes, password: str | None = None):
         self.secret_key = secret_key
         self.public_key = get_public_key(self.secret_key)
         self.password = password
-        self.client_to_server_key = None
-        self.server_to_client_key = None
+        self.client_to_server_key: None | bytes = None
+        self.server_to_client_key: None | bytes = None
         
     
     def PAKE(self, peer_public_key: bytes, nonce: bytes) -> tuple[bytes, bytes, bytes]:
@@ -58,14 +58,23 @@ class Auth:
         )
         
         plaintext = os.urandom(8)
-        mac, ciphertext = CryptoAeadCtx.lock(plaintext, self.client_to_server_key, nonce, self.public_key)
+        mac, ciphertext = CryptoAeadCtx.lock(
+        	plaintext, 
+        	self.client_to_server_key, 
+        	nonce, 
+        	self.public_key
+        )
         
         return self.public_key, mac, ciphertext
     
     def get_receive_handler(self, nonce: bytes) -> CryptoAeadCtx:
+        if self.server_to_client_key is None:
+            raise ValueError("server_to_client_key not yet set. Please make an issue on github")
         return CryptoAeadCtx(self.server_to_client_key, nonce)
     
     def get_send_handler(self, nonce: bytes) -> CryptoAeadCtx:
+        if self.client_to_server_key is None:
+            raise ValueError("server_to_client_key not yet set. Please make an issue on github")
         return CryptoAeadCtx(self.client_to_server_key, nonce)
 
 

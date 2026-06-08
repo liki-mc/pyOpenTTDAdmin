@@ -1,6 +1,7 @@
 from .enums import *
 
 from typing_extensions import Self, TypedDict
+from typing import Type
 
 # reference: https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h
 
@@ -10,7 +11,7 @@ class Packet:
         self.data = data
     
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.data})"
+        return f"{self.__class__.__name__}({self.data!r})"
     
     def to_bytes(self) -> bytes:
         raise NotImplementedError()
@@ -21,7 +22,7 @@ class Packet:
         return packet_dict[type].from_bytes(data)
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "Packet":
         raise NotImplementedError()
 
 class ErrorPacket(Packet):
@@ -33,7 +34,7 @@ class ErrorPacket(Packet):
         return f"ErrorPacket({self.error})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ErrorPacket":
         error = NetWorkErrorCodes(data[1])
         return ErrorPacket(error)
         
@@ -51,7 +52,7 @@ class AdminJoinPacket(Packet):
         return f"{self.password}\x00{self.string}\x00{self.version}\x00".encode('utf-8')
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "AdminJoinPacket":
         password, _, data = data[1:].partition(b'\x00')
         string, _, data = data.partition(b'\x00')
         version, _, data = data.partition(b'\x00')
@@ -72,7 +73,7 @@ class ProtocolPacket(Packet):
         return f"ProtocolPacket({self.version}, subs = (\n{subs}\n))"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ProtocolPacket":
         version = data[1]
         subscriptions: dict[AdminUpdateType, AdminUpdateFrequency | None] = {}
         for i in range(2, len(data) - 1, 5):
@@ -92,7 +93,7 @@ class ProtocolPacket(Packet):
 
 class WelcomePacket(Packet):
     packet_type = PacketType.SERVER_WELCOME
-    def __init__(self, server_name: str, version: str, dedicated: bool, map_name: str, seed: int, landscape: int, startdate: int, mapheight: int, mapwidth: int):
+    def __init__(self, server_name: str, version: str, dedicated: bool, map_name: str, seed: int, landscape: Landscape, startdate: int, mapheight: int, mapwidth: int):
         self.server_name = server_name
         self.version = version
         self.dedicated = dedicated
@@ -120,15 +121,15 @@ class WelcomePacket(Packet):
 )"""
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
-        server_name, _, data = data[1:].partition(b'\x00')
-        version, _, data = data.partition(b'\x00')
+    def from_bytes(data: bytes) -> "WelcomePacket":
+        server_name_bytes, _, data = data[1:].partition(b'\x00')
+        version_bytes, _, data = data.partition(b'\x00')
         dedicated = bool(data[0])
-        map_name, _, data = data[1:].partition(b'\x00')
+        map_name_bytes, _, data = data[1:].partition(b'\x00')
         
-        server_name = server_name.decode('utf-8')
-        version = version.decode('utf-8')
-        map_name = map_name.decode('utf-8')
+        server_name = server_name_bytes.decode('utf-8')
+        version = version_bytes.decode('utf-8')
+        map_name = map_name_bytes.decode('utf-8')
         
         seed = int.from_bytes(data[:4], 'little')
         landscape = Landscape(data[4])
@@ -147,7 +148,7 @@ class NewGamePacket(Packet):
         return f"NewGamePacket()"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "NewGamePacket":
         return NewGamePacket(data)
 
 class ShutdownPacket(Packet):
@@ -159,7 +160,7 @@ class ShutdownPacket(Packet):
         return f"ShutdownPacket()"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ShutdownPacket":
         return ShutdownPacket(data)
 
 class DatePacket(Packet):
@@ -171,7 +172,7 @@ class DatePacket(Packet):
         return f"DatePacket({self.date})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "DatePacket":
         date = int.from_bytes(data[1:5], 'little')
         return DatePacket(date)
 
@@ -184,7 +185,7 @@ class ClientJoinPacket(Packet):
         return f"ClientJoinPacket({self.id})"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ClientJoinPacket":
         id = int.from_bytes(data[1:5], 'little')
         return ClientJoinPacket(id)
 
@@ -202,7 +203,7 @@ class ClientInfoPacket(Packet):
         return f"ClientInfoPacket({self.id}, {self.ip}, {self.name}, {self.lang}, {self.joined}, {self.company_id})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ClientInfoPacket":
         id = int.from_bytes(data[1:5], 'little')
         ip, _, data = data[5:].partition(b'\x00')
         name, _, data = data.partition(b'\x00')
@@ -224,7 +225,7 @@ class ClientUpdatePacket(Packet):
         return f"ClientUpdatePacket({self.id}, {self.name}, {self.company_id})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ClientUpdatePacket":
         id = int.from_bytes(data[1:5], 'little')
         name, _, data = data[5:].partition(b'\x00')
         company_id = data[0]
@@ -240,7 +241,7 @@ class ClientQuitPacket(Packet):
         return f"ClientQuitPacket({self.id})"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ClientQuitPacket":
         id = int.from_bytes(data[1:5], 'little')
         return ClientQuitPacket(id)
 
@@ -254,7 +255,7 @@ class ClientErrorPacket(Packet):
         return f"ClientErrorPacket({self.id}, {self.error})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ClientErrorPacket":
         id = int.from_bytes(data[1:5], 'little')
         error = NetWorkErrorCodes(data[5])
         return ClientErrorPacket(id, error)
@@ -268,7 +269,7 @@ class CompanyNewPacket(Packet):
         return f"CompanyNewPacket({self.id})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CompanyNewPacket":
         id = data[1]
         return CompanyNewPacket(id)
 
@@ -288,7 +289,7 @@ class CompanyInfoPacket(Packet):
         return f"CompanyInfoPacket({self.id}, {self.name}, {self.manager_name}, {self.color}, {self.passworded}, {self.year}, {self.is_ai}, {self.quarters_to_bankruptcy})"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CompanyInfoPacket":
         id = data[1]
         name, _, data = data[2:].partition(b'\x00')
         manager_name, _, data = data.partition(b'\x00')
@@ -315,13 +316,13 @@ class CompanyUpdatePacket(Packet):
         return f"CompanyUpdatePacket({self.id}, {self.name}, {self.manager_name}, {self.color}, {self.passworded}, {self.quarters_to_bankruptcy})"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CompanyUpdatePacket":
         id = data[1]
-        name, _, data = data[2:].partition(b'\x00')
-        manager_name, _, data = data.partition(b'\x00')
+        name_bytes, _, data = data[2:].partition(b'\x00')
+        manager_name_bytes, _, data = data.partition(b'\x00')
         
-        name = name.decode('utf-8')
-        manager_name = manager_name.decode('utf-8')
+        name = name_bytes.decode('utf-8')
+        manager_name = manager_name_bytes.decode('utf-8')
         
         color = Color(data[0])
         passworded = bool(data[1])
@@ -340,7 +341,7 @@ class CompanyRemovePacket(Packet):
         return f"CompanyRemovePacket({self.id}, {self.admin_remove_reason})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CompanyRemovePacket":
         id = data[1]
         admin_remove_reason = AdminCompanyRemoveReason(data[2])
         return CompanyRemovePacket(id, admin_remove_reason)
@@ -365,7 +366,7 @@ class CompanyEconomyPacket(Packet):
                 f"income={self.income}, delivered={self.delivered_cargo}, quarterly={self.quarterly_info})")
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CompanyEconomyPacket":
         id = data[1]
         money = int.from_bytes(data[2:10], 'little')
         current_loan = int.from_bytes(data[10:18], 'little')
@@ -378,11 +379,11 @@ class CompanyEconomyPacket(Packet):
             company_value = int.from_bytes(data[:8], 'little')
             company_performance_history = int.from_bytes(data[8:10], 'little')
             delivered_cargo = int.from_bytes(data[10:12], 'little')
-            quarterly_info.append({
+            quarterly_info.append(QuarterlyCompanyInfo({
                 'company_value': company_value,
                 'company_performance_history': company_performance_history,
                 'delivered_cargo': delivered_cargo
-            })
+            }))
             data = data[12:]
         
         return CompanyEconomyPacket(id, money, current_loan, income, delivered_cargo, quarterly_info)
@@ -398,7 +399,7 @@ class CompanyStatsPacket(Packet):
         return f"CompanyStatsPacket({self.id}, {vehicles})"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CompanyStatsPacket":
         id = data[1]
         num_vehicles: dict[NetworkVehicleType, int] = {}
         for i in range(NetworkVehicleType.NETWORK_VEH_END.value):
@@ -419,7 +420,7 @@ class ChatPacket(Packet):
         return f"ChatPacket{self.action.value, self.desttype.value, self.id, self.message, self.money}"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ChatPacket":
         money = None
         action = Actions(data[1])
         desttype = ChatDestTypes(data[2])
@@ -438,9 +439,9 @@ class RconEndPacket(Packet):
         return f"RconEndPacket({self.command})"
 
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "RconEndPacket":
         command, *_ = data[1:].partition(b'\x00')
-        return RconEndPacket(command)
+        return RconEndPacket(command.decode('utf-8'))
    
 class RconPacket(Packet):
     packet_type = PacketType.SERVER_RCON
@@ -449,10 +450,10 @@ class RconPacket(Packet):
         self.response = response
     
     def __repr__(self) -> str:
-        return f"RconPacket({self.color}, {self.response})"
+        return f"RconPacket({self.color!r}, {self.response})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "RconPacket":
         color = data[1:3] # Color(int.from_bytes(data[1:3], 'little')) - this uses colors up to 256
         response, *_ = data[3:].partition(b'\x00')
         return RconPacket(color, response.decode('utf-8'))
@@ -467,7 +468,7 @@ class ConsolePacket(Packet):
         return f"ConsolePacket({self.origin}, {self.message})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ConsolePacket":
         origin, _, data = data[1:].partition(b'\x00')
         message, *_ = data.partition(b'\x00')
         
@@ -482,7 +483,7 @@ class GameScriptPacket(Packet):
         return f"GameScriptPacket({self.json})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "GameScriptPacket":
         json = data[1:].decode('utf-8')
         return GameScriptPacket(json)
 
@@ -495,7 +496,7 @@ class CmdNamesPacket(Packet):
         return f"CmdNamesPacket({self.names})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CmdNamesPacket":
         names = []
         while b'\x00' in data:
             name, _, data = data.partition(b'\x00')
@@ -516,10 +517,10 @@ class CmdLoggingPacket(Packet):
         self.frame = frame
     
     def __repr__(self) -> str:
-        return f"CmdLoggingPacket({self.client_id}, {self.company_id}, {self.cmd}, {self.data}, {self.frame})"
+        return f"CmdLoggingPacket({self.client_id}, {self.company_id}, {self.cmd}, {self.data!r}, {self.frame})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "CmdLoggingPacket":
         client_id = int.from_bytes(data[1:5], 'little')
         company_id = data[5]
         cmd = int.from_bytes(data[6:8], 'little')
@@ -541,7 +542,7 @@ class AdminRconPacket(Packet):
         return f"{self.command}\x00".encode('utf-8')
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "AdminRconPacket":
         command, *_ = data[1:].partition(b'\x00')
         return AdminRconPacket(command.decode('utf-8'))
 
@@ -565,7 +566,7 @@ class AdminChatPacket(Packet):
         return buffer + f"{self.message}\x00".encode('utf-8')
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "AdminChatPacket":
         action = Actions(data[1])
         desttype = ChatDestTypes(data[2])
         id = int.from_bytes(data[3:7], 'little')
@@ -585,7 +586,7 @@ class AdminSubscribePacket(Packet):
         return self.type.value.to_bytes(2, 'little') + self.frequency.value.to_bytes(2, 'little') + b"\x00"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "AdminSubscribePacket":
         type = AdminUpdateType(int.from_bytes(data[1:3], 'little'))
         frequency = AdminUpdateFrequency(int.from_bytes(data[3:5], 'little'))
         return AdminSubscribePacket(type, frequency)
@@ -624,10 +625,10 @@ class ServerAuthenticationRequestPacket(Packet):
         self.server_nonce = server_nonce
 
     def __repr__(self) -> str:
-        return f"ServerAuthenticationRequestPacket(authentication_type = {self.authentication_type}, server_key = {self.server_public_key}, server_nonce = {self.server_nonce})"
+        return f"ServerAuthenticationRequestPacket(authentication_type = {self.authentication_type}, server_key = {self.server_public_key!r}, server_nonce = {self.server_nonce!r})"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ServerAuthenticationRequestPacket":
         authentication_type = NetworkAuthenticationMethod(int.from_bytes(data[1:2], 'little'))
         server_key = data[2:34]
         server_nonce = data[34:]
@@ -643,10 +644,10 @@ class ServerEnableEncryptionPacket(Packet):
         return f"ServerEnableEncryptionPacket({self.encryption_nonce = })"
     
     @staticmethod
-    def from_bytes(data: bytes) -> Self:
+    def from_bytes(data: bytes) -> "ServerEnableEncryptionPacket":
         return ServerEnableEncryptionPacket(data[1:])
 
-packet_dict: dict[PacketType, Packet] = {
+packet_dict: dict[PacketType, Type[Packet]] = {
     PacketType.SERVER_ERROR: ErrorPacket,
     PacketType.ADMIN_JOIN: AdminJoinPacket,
     PacketType.SERVER_PROTOCOL: ProtocolPacket,
