@@ -6,7 +6,7 @@ This library enables developers to interact with an OpenTTD server programmatica
 
 ## Features
 
-- **Authentication**: Authenticate with an OpenTTD server using the provided password.
+- **Authentication**: Authenticate with an OpenTTD server using the provided password or secret key.
 - **Packet Handling**: Receive and parse packets from the server, allowing developers to react to different events and messages.
 - **Sending Commands**: Send commands to the OpenTTD server, such as chat messages, remote console commands, and more.
 - **Subscription to Updates**: Subscribe to various types of updates from the server, including chat messages, client information, company data, and more.
@@ -18,15 +18,21 @@ The basic usage of pyOpenTTDAdmin involves creating an instance of the `Admin` c
 
 Example code for an echo bot can be found here:
 ```python
-from pyopenttdadmin import Admin, AdminUpdateType, openttdpacket
+from pyopenttdadmin import Admin, AdminUpdateType, openttdpacket as p, Auth
 
 # Set the IP address and port number for connection
 ip_address = "127.0.0.1"
 port_number = 3977
 
+# Setup authentification
+auth = Auth(
+    name = "pyOpenTTDAdmin", # This name shows up in the logs
+    version = "15.0",
+    password = "toor" # assuming the password is 'toor'
+)
+
 # Instantiate the Admin class and establish connection to the server
-admin = Admin(ip = ip_address, port = port_number)
-admin.login("pyOpenTTDAdmin", password = "toor") # assuming the password is "toor"
+admin = Admin(ip = ip_address, port = port_number, auth = auth)
 
 # Subscribe to receive chat updates
 admin.subscribe(AdminUpdateType.CHAT)
@@ -48,16 +54,23 @@ admin.run()
 pyOpenTTDAdmin also support async/await syntax:
 ```python
 import asyncio
-from aiopyopenttdadmin import Admin, AdminUpdateType, openttdpacket
+from aiopyopenttdadmin import Admin, AdminUpdateType, openttdpacket as p, Auth
 
 # Set the IP address and port number for connection
 ip_address = "127.0.0.1"
 port_number = 3977
 
+# Setup authentification
+auth = Auth(
+    name = "pyOpenTTDAdmin", # This name shows up in the logs
+    version = "15.0",
+    password = "toor" # assuming the password is 'toor'
+)
+
 async def main():
     # Instantiate the Admin class and establish connection to the server
-    admin = Admin(ip = ip_address, port = port_number)
-    await admin.login("pyOpenTTDAdmin", password = "toor") # assuming the password is "toor"
+    admin = Admin(ip = ip_address, port = port_number, auth = auth)
+    await admin.connect()
 
     # Subscribe to receive chat updates
     await admin.subscribe(AdminUpdateType.CHAT)
