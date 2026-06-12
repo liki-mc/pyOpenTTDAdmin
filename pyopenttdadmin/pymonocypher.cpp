@@ -21,20 +21,23 @@ PYBIND11_MODULE(pymonocypher, m) {
 		}), py::arg("key"), py::arg("nonce24"),
 		"Construct and init from key and nonce.")
 
-        .def("read", [](crypto_aead_ctx &self, py::bytes mac_b, py::bytes cipher_b, py::bytes aad_b = py::bytes())
+        .def("read", [](crypto_aead_ctx &self, py::bytes data, py::bytes aad_b = py::bytes())
             {
-            std::string macs = mac_b, c = cipher_b, a = aad_b;
-            if (macs.size() != 16) throw std::runtime_error("mac must be 16 bytes");
-            std::vector<uint8_t> out(c.size());
+            std::string s = data;
+            if (s.size() < 16) throw std::runtime_error("combined too short for mac");
+            std::string mac(s.data(), 16);
+            std::string cipher(s.data() + 16, s.size() - 16);
+            std::string a = aad_b;
+            
+            std::vector<uint8_t> out(cipher.size());
             int rc = crypto_aead_read(&self, out.data(),
-                                      reinterpret_cast<const uint8_t*>(macs.data()),
+                                      reinterpret_cast<const uint8_t*>(mac.data()),
                                       a.empty()?nullptr:reinterpret_cast<const uint8_t*>(a.data()), a.size(),
-                                      reinterpret_cast<const uint8_t*>(c.data()), c.size());
+                                      reinterpret_cast<const uint8_t*>(cipher.data()), cipher.size());
             if (rc != 0) throw std::runtime_error("authentication failed");
             return py::bytes(reinterpret_cast<char*>(out.data()), out.size());
             }, 
-            py::arg("mac"), 
-            py::arg("ciphertext"), 
+            py::arg("data"), 
             py::arg("aad") = py::bytes(),
             "Verify and decrypt ciphertext with the context. Raises on auth failure; returns plaintext."
         )
@@ -48,8 +51,11 @@ PYBIND11_MODULE(pymonocypher, m) {
 		                                   a.empty()?nullptr:reinterpret_cast<const uint8_t*>(a.data()), a.size(),
 		                                   reinterpret_cast<const uint8_t*>(p.data()), p.size());
 		        
-		        return py::make_tuple(py::bytes(reinterpret_cast<char*>(mac), 16),
-		                              py::bytes(reinterpret_cast<char*>(ct.data()), ct.size()));
+		        
+		        
+		        std::string data(reinterpret_cast<const char*>(mac), 16);
+                data.append(reinterpret_cast<const char*>(ct.data()), ct.size());
+                return py::bytes(data);
 		    },
 		    py::arg("plaintext"), 
 		    py::arg("aad") = py::bytes(),

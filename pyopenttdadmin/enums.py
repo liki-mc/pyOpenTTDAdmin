@@ -171,8 +171,7 @@ class NetworkVehicleType(Enum):
 class NetworkAuthenticationMethod(Enum):
     X25519_KeyExchangeOnly  = 0x0    # No actual authentication is taking place, just perform a x25519 key exchange. This method is not supported for the admin connection.
     X25519_PAKE             = 0x1    # Authentication using x25519 password-authenticated key agreement.
-    X25519_AuthorizedKey    = 0x2    # Authentication using x22519 key exchange and authorised keys.
-    X25519_AuthorisedKey    = 0x2    # We all love British English way more and you better know it.
+    X25519_AuthorisedKey    = 0x2    # Authentication using x22519 key exchange and authorised keys. We all love British English way more and you better know it.
     End                     = 0x3    # Must ALWAYS be on the end of this list!! (period)
 
 AdminUpdateTypeFrequencyMatrix: dict[AdminUpdateType, list[AdminUpdateFrequency]] = {

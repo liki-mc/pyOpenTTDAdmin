@@ -20,7 +20,7 @@ class CryptoAeadCtx:
         """
         Construct and init from key and nonce.
         """
-    def read(self, mac: bytes, ciphertext: bytes, aad: bytes = b'') -> bytes:
+    def read(self, data: bytes, aad: bytes = b'') -> bytes:
         """
         Verify and decrypt ciphertext with the context. Raises on auth failure; returns plaintext.
         """
@@ -28,7 +28,7 @@ class CryptoAeadCtx:
         """
         Securely wipe the context (zeroes key/material).
         """
-    def write(self, plaintext: bytes, aad: bytes = b'') -> tuple[bytes, bytes]:
+    def write(self, plaintext: bytes, aad: bytes = b'') -> bytes:
         """
         Encrypt plaintext with the context. Returns (mac, ciphertext).
         """

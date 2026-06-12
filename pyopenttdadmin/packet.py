@@ -40,24 +40,33 @@ class ErrorPacket(Packet):
         
 class AdminJoinPacket(Packet):
     packet_type = PacketType.ADMIN_JOIN
-    def __init__(self, password: str, string: str, version: str):
+    def __init__(self, password: str, name: str, version: str):
         self.password = password
-        self.string = string
+        self.name = name
         self.version = version
+    
+    @property
+    def string(self) -> str:
+        """Depricated variable"""
+        return self.name
+    
+    @string.setter
+    def string(self, name: str):
+        self.name = name
 
     def __repr__(self) -> str:
-        return f"AdminJoinPacket()"
+        return f"AdminJoinPacket({'*' * len(self.password)}, {self.name}, {self.version})"
     
     def to_bytes(self) -> bytes:
-        return f"{self.password}\x00{self.string}\x00{self.version}\x00".encode('utf-8')
+        return f"{self.password}\x00{self.name}\x00{self.version}\x00".encode('utf-8')
     
     @staticmethod
     def from_bytes(data: bytes) -> "AdminJoinPacket":
         password, _, data = data[1:].partition(b'\x00')
-        string, _, data = data.partition(b'\x00')
+        name, _, data = data.partition(b'\x00')
         version, _, data = data.partition(b'\x00')
         
-        return AdminJoinPacket(password.decode('utf-8'), string.decode('utf-8'), version.decode('utf-8'))
+        return AdminJoinPacket(password.decode('utf-8'), name.decode('utf-8'), version.decode('utf-8'))
 
 class ProtocolPacket(Packet):
     packet_type = PacketType.SERVER_PROTOCOL
@@ -599,7 +608,7 @@ class AdminJoinSecurePacket(Packet):
         self.method_mask = method_mask
 
     def __repr__(self) -> str:
-        return f"AdminJoinSecurePacket()"
+        return f"AdminJoinSecurePacket({self.admin_name}, {self.admin_version}, {self.method_mask})"
     
     def to_bytes(self) -> bytes:
         return f"{self.admin_name}\x00{self.admin_version}\x00".encode('utf-8') + self.method_mask.to_bytes(2, 'little')
