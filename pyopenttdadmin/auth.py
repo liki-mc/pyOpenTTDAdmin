@@ -66,7 +66,6 @@ class Auth:
             self._set_login_data(name, version, password = password, secret_key = secret_key, secure = secure)
         else:
             self._auth_data = {}
-        
         self._authenticated: bool = False
     
     @property
@@ -126,7 +125,15 @@ class Auth:
                 return self._enable_encryption(packet), False
             case ProtocolPacket():
                 if packet.version not in KNOWN_PROTOCOL_VERSIONS:
-                    warnings.warn(RuntimeWarning(f"[OTTD1000] Protocol version mismatch. The PyOpenTTDAdmin library was not tested against protocol version {packet.version}. Some features might not work."))
+                    warnings.warn(RuntimeWarning(f"[OTTDA1000] Protocol version mismatch. The PyOpenTTDAdmin library was not tested against protocol version {packet.version}. Some features might not work."))
+                return (None, False)
+            
+            case _:
+                warnings.warn("[0TTDA1001] Unexpected packet in auth flow")
+                # Retry getting packet up to 5 times:
+                self._auth_data["auth_counter"] = self._auth_data.get("auth_counter", -1) + 1
+                if self._auth_data["auth_counter"] >= 5:
+                    raise AuthenticationError("Authentication flow keeps getting unexpected packets.")
                 return (None, False)
     
     def _start_auth(self) -> Packet:
