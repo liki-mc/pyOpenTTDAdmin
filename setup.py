@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = 'pyOpenTTDAdmin',
-    version = '1.0.4',
+    version = '1.1.0',
     packages = ['pyopenttdadmin', 'aiopyopenttdadmin'],
     install_requires = [],  # Add any dependencies here
     author = 'liki-mc',
