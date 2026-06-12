@@ -38,13 +38,13 @@ admin = Admin(ip = ip_address, port = port_number, auth = auth)
 admin.subscribe(AdminUpdateType.CHAT)
 
 # Print chat packets
-@admin.add_handler(openttdpacket.ChatPacket)
-def chat_packet(admin: Admin, packet: openttdpacket.ChatPacket):
+@admin.add_handler(p.ChatPacket)
+def chat_packet(admin: Admin, packet: p.ChatPacket):
     print(f'ID: {packet.id} Message: {packet.message}')
 
 # Echo chat
-@admin.add_handler(openttdpacket.ChatPacket)
-def echo_chat(admin: Admin, packet: openttdpacket.ChatPacket):
+@admin.add_handler(p.ChatPacket)
+def echo_chat(admin: Admin, packet: p.ChatPacket):
     admin.send_global(packet.message)
 
 # Run admin
@@ -76,13 +76,13 @@ async def main():
     await admin.subscribe(AdminUpdateType.CHAT)
 
     # Print chat packets
-    @admin.add_handler(openttdpacket.ChatPacket)
-    async def chat_packet(admin: Admin, packet: openttdpacket.ChatPacket):
+    @admin.add_handler(p.ChatPacket)
+    async def chat_packet(admin: Admin, packet: p.ChatPacket):
         print(f'ID: {packet.id} Message: {packet.message}')
 
     # Echo chat
-    @admin.add_handler(openttdpacket.ChatPacket)
-    async def echo_chat(admin: Admin, packet: openttdpacket.ChatPacket):
+    @admin.add_handler(p.ChatPacket)
+    async def echo_chat(admin: Admin, packet: p.ChatPacket):
         await admin.send_global(packet.message)
 
     # Run admin
