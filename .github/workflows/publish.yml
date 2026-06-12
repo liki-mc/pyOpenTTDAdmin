@@ -9,35 +9,83 @@ on:
 
 jobs:
 # Builds the pythond distribution (wheel and source tarball)
-  build:
-    name: Build distribution 📦
-    runs-on: ubuntu-latest
-
+  build_wheels:
+    name: Build wheels for ${{ matrix.os }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - os: linux-intel
+            runs-on: ubuntu-latest
+          - os: linux-arm
+            runs-on: ubuntu-24.04-arm
+          - os: windows-intel
+            runs-on: windows-latest
+          - os: windows-arm
+            runs-on: windows-11-arm
+          - os: macos-intel
+            # macos-15-intel is the last x86_64 runner
+            runs-on: macos-15-intel
+          - os: macos-arm
+            # macos-14+ (including latest) are ARM64 runners
+            runs-on: macos-latest
+          - os: android-intel
+            runs-on: ubuntu-latest
+            platform: android
+          - os: android-arm
+            # GitHub Actions doesn’t currently support the Android emulator on any ARM
+            # runner. So we build on a non-ARM runner, which will skip the tests.
+            runs-on: ubuntu-latest
+            platform: android
+            archs: arm64_v8a
+          - os: ios
+            runs-on: macos-latest
+            platform: ios
+          - os: pyodide
+            runs-on: ubuntu-latest
+            platform: pyodide
     steps:
-    - uses: actions/checkout@v4 # Checkout the code
-    - name: Set up Python
-      uses: actions/setup-python@v5 # Set up the Python environment
-      with:
-        python-version: "3.x"
-    - name: Install pypa/build # Install the build tool
-      run: >-
-        python3 -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: python3 -m build # Build the package
-    - name: Store the distribution packages # Temporarily store the build artifacts in the dist directory under the name python-package-distributions
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v4.0.0
+        env:
+          CIBW_PLATFORM: ${{ matrix.platform || 'auto' }}
+          CIBW_ARCHS: ${{ matrix.archs || 'auto' }}
+        # Can also be configured directly, using `with:`
+        # with:
+        #   package-dir: .
+        #   output-dir: wheelhouse
+        #   config-file: "{package}/pyproject.toml"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
+
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
 
 # Publishes the built package to TestPyPI (for testing) if the tag starts with test_v.*
   publish-to-testpypi:
       name: Publish to TestPyPI 🐍📦
-      needs:
-        - build # Start the job only if the build job has completed
+      needs: [build_wheels, build_sdist]
       runs-on: ubuntu-latest
 
       environment:
@@ -51,10 +99,11 @@ jobs:
 
       steps:
       - name: Download all the dists # Download the build artifacts that were saved earlier
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: python-package-distributions
-          path: dist/
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
       - name: Publish distribution 📦 to TestPyPI # Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -63,8 +112,7 @@ jobs:
 # Publishes the built package to PyPI (production) if the tag starts with v.*
   publish-to-pypi:
       name: Publish to PyPI 🐍 📦
-      needs:
-        - build # Start the job only if the build job has completed
+      needs: [build_wheels, build_sdist]
       runs-on: ubuntu-latest
 
       environment:
@@ -78,10 +126,11 @@ jobs:
 
       steps:
       - name: Download all the dists
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: python-package-distributions
-          path: dist/
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
@@ -96,7 +145,7 @@ jobs:
 
       steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Checkout the code
+        uses: actions/checkout@v6 # Checkout the code
 
       - name: Create GitHub Release
         env:
