@@ -1,0 +1,108 @@
+name: Publish Python distribution 🐍📦
+
+# The workflow is triggered when events that include that includes tagas starting with v*.*.* or test_v*.*.*. are sent to the repository.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'test_v*.*.*'
+
+jobs:
+# Builds the pythond distribution (wheel and source tarball)
+  build:
+    name: Build distribution 📦
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4 # Checkout the code
+    - name: Set up Python
+      uses: actions/setup-python@v5 # Set up the Python environment
+      with:
+        python-version: "3.x"
+    - name: Install pypa/build # Install the build tool
+      run: >-
+        python3 -m
+        pip install
+        build
+        --user
+    - name: Build a binary wheel and a source tarball
+      run: python3 -m build # Build the package
+    - name: Store the distribution packages # Temporarily store the build artifacts in the dist directory under the name python-package-distributions
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+# Publishes the built package to TestPyPI (for testing) if the tag starts with test_v.*
+  publish-to-testpypi:
+      name: Publish to TestPyPI 🐍📦
+      needs:
+        - build # Start the job only if the build job has completed
+      runs-on: ubuntu-latest
+
+      environment:
+        name: testpypi # Enter the environment name set in the Publisher
+        url: https://test.pypi.org/p/pyOpenTTDAdmin # Project URL
+
+      permissions:
+        id-token: write  # Grant Publishing permissions
+
+      if: startsWith(github.ref, 'refs/tags/test_v') # Conditional check for TestPyPI publishing
+
+      steps:
+      - name: Download all the dists # Download the build artifacts that were saved earlier
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish distribution 📦 to TestPyPI # Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+# Publishes the built package to PyPI (production) if the tag starts with v.*
+  publish-to-pypi:
+      name: Publish to PyPI 🐍 📦
+      needs:
+        - build # Start the job only if the build job has completed
+      runs-on: ubuntu-latest
+
+      environment:
+        name: pypi # Enter the environment name set in the Publisher
+        url: https://pypi.org/p/pyOpenTTDAdmin # Project URL
+
+      permissions:
+        id-token: write
+
+      if: startsWith(github.ref, 'refs/tags/v') # Conditional check for PyPI publishing
+
+      steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+      name: Create GitHub Release with source code 📦
+      needs:
+        - publish-to-pypi # Start the job only if the PyPI publishing job has completed
+      runs-on: ubuntu-latest
+
+      permissions:
+        contents: write # Grant permission to create a GitHub release
+
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Checkout the code
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # A temporary token that is automatically generated each time the workflow is run
+        run: >-
+          gh release create
+          '$\{\{ github.ref_name \}\}'
+          --repo '$\{\{ github.repository \}\}'
+          --notes "Release for version $\{\{ github.ref_name \}\}"
