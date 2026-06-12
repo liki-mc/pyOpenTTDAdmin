@@ -84,7 +84,7 @@ class Auth:
         self._auth_data = {
             "data": {
                 "password": password,
-                "secret_key": secret_key,
+                "secret_key": bytes.fromhex(secret_key),
                 "name": name,
                 "version": version,
             },
@@ -185,7 +185,7 @@ class Auth:
     
     def _auth_PAKE(self, packet: ServerAuthenticationRequestPacket) -> AdminAuthenticationResponsePacket:
         """
-        Generate Admin Response information for PAKE handshake
+        Generate Admin Response for PAKE handshake
         
         Returns:
         - AdminAuthenticationResponsePacket
@@ -194,8 +194,6 @@ class Auth:
         secret_key = self._auth_data["data"]["secret_key"]
         public_key = self._auth_data["data"]["public_key"]
         
-        
-        
         shared_key = shared_keys(secret_key, packet.server_public_key)
         client_to_server_key, server_to_client_key = derive_keys(
             shared_key, 
@@ -203,6 +201,38 @@ class Auth:
             our_public = public_key, 
             peer_public = packet.server_public_key, 
             extra_payload = password.encode('utf-8')
+        )
+        self._auth_data["keys"] = {
+            "client_to_server_key": client_to_server_key, 
+            "server_to_client_key": server_to_client_key,
+        }
+        
+        plaintext = os.urandom(8)
+        mac, ciphertext = CryptoAeadCtx.lock(
+            plaintext, 
+            client_to_server_key, 
+            packet.server_nonce, 
+            public_key
+        )
+        
+        return AdminAuthenticationResponsePacket(public_key, mac, ciphertext)
+    
+    def _auth_key(self, packet: ServerAuthenticationRequestPacket) -> AdminAuthenticationResponsePacket:
+        """
+        Generate Admin Response for authorised key handshake
+        
+        Returns:
+        - AdminAuthenticationResponsePacket
+        """
+        secret_key = self._auth_data["data"]["secret_key"]
+        public_key = self._auth_data["data"]["public_key"]
+        
+        shared_key = shared_keys(secret_key, packet.server_public_key)
+        client_to_server_key, server_to_client_key = derive_keys(
+            shared_key, 
+            side = "client", 
+            our_public = public_key, 
+            peer_public = packet.server_public_key,
         )
         self._auth_data["keys"] = {
             "client_to_server_key": client_to_server_key, 
