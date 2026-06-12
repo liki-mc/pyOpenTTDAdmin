@@ -3,21 +3,11 @@ from __future__ import annotations
 import socket
 import warnings
 
-from typing import Callable, TYPE_CHECKING, Type
-
-if TYPE_CHECKING:
-    from .pymonocypher import CryptoAeadCtx
+from typing import Callable, Type
 
 from .enums import *
 from .packet import *
 from .auth import Auth
-
-try:
-    import secrets
-    randombytes = secrets.token_bytes
-except ImportError:
-    import os
-    randombytes = os.urandom # type: ignore
 
 class Admin:
     """This class is used to interact with an OpenTTD server using the admin port.
@@ -52,7 +42,7 @@ class Admin:
         password: str | None = None, 
         version: str | int = "15.0"
     ):
-        """Deptricated
+        """Depricated
         Log in to the server.
 
         Setting arguments to this function is depricated, please use the Auth api:
@@ -234,13 +224,16 @@ class Admin:
         
         If a ShutdownPacket is recieved, the method will return.
         """
-        while True:
-            packets = self.recv()
-            for packet in packets:
-                self.on_packet(packet)
-                
-                if isinstance(packet, ShutdownPacket):
-                    return
+        try:
+            while True:
+                packets = self.recv()
+                for packet in packets:
+                    self.on_packet(packet)
+                    
+                    if isinstance(packet, ShutdownPacket):
+                        return
+        finally:
+            self.auth.clear()
 
     def handle_packet(self, packet: Packet):
         """Handle a packet received from the server.

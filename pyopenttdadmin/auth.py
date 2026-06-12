@@ -84,7 +84,7 @@ class Auth:
         self._auth_data = {
             "data": {
                 "password": password,
-                "secret_key": bytes.fromhex(secret_key),
+                "secret_key": secret_key if secret_key is None else bytes.fromhex(secret_key),
                 "name": name,
                 "version": version,
             },
@@ -268,7 +268,7 @@ class Auth:
     def write(self, data: bytes) -> bytes:
         return data
     
-    def clear():
+    def clear(self):
         """
         Python does not really allow to wipe information, overwriting strings and bytes will not overwrite the physical location in memory.
         The cpp extension does allow this, so we wipe those keys.
