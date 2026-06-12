@@ -14,7 +14,7 @@ ext = Extension(
 
 setup(
     name = 'pyOpenTTDAdmin',
-    version = '1.1.0',
+    version = '1.1.2',
     packages = ['pyopenttdadmin', 'aiopyopenttdadmin'],
     install_requires = [],  # Add any dependencies here
     author = 'liki-mc',
